@@ -5,7 +5,8 @@ import json
 
 avg_unload_seconds_per_bag = 30
 max_payload_big_truck = 330
-input_file = "data_files/quick_test_data.csv"
+customer_file = 'data_files/quick_test_data.csv'
+api_key_file = 'data_files/google_api_key.json'
 distributionCenters = set([DeliveryLogistics.DistributionCenter('Dogwood Elementary School', '12300 Glade Dr, Reston, VA 20191, USA')])
     
 
@@ -13,13 +14,13 @@ if __name__ == "__main__":
 
     # load our list of customers
     customer_orders = set()
-    with open(input_file,'rt',newline='') as f:
+    with open(customer_file,'rt',newline='') as f:
         reader = csv.DictReader(f)
         for row in reader:
             customer_orders.add(DeliveryLogistics.DeliveryLocation('',row['address'],row['bags']))
     
     # load the google API key
-    f = open('data_files/google_api_key.json',)
+    f = open(api_key_file,)
     data = json.load(f)
     google_api_key = data['google api key']
     f.close()
