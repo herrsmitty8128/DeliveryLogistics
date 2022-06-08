@@ -1,0 +1,43 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "format DeliveryLogistics.py",
+            "type": "shell",
+            "command": "autopep8",
+            "args":["--in-place", "--max-line-length", "200", "--aggressive", "--aggressive", "DeliveryLogistics.py"],
+            "group": {
+				"kind": "build",
+				"isDefault": true
+			},
+            "presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": true,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": true
+			}
+        },
+        {
+            "label": "Run test",
+            "type": "shell",
+            "command": "${command:python.interpreterPath}",
+            "args":["${file}"],
+            "group": {
+				"kind": "build",
+				"isDefault": true
+			},
+            "presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": true,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": true
+			}
+        }
+    ]
+}
