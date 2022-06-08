@@ -171,6 +171,7 @@ class TreeBuilder:
 
     class Node:
         '''A basic tree note object containing a value and an array of children.'''
+
         def __init__(self, value: object):
             self.value = value
             self.children = []
@@ -187,7 +188,7 @@ class TreeBuilder:
     def minimum_spanning_tree(matrix: TravelMatrix, root_location: int, undelivered_locations: set[int], max_payload: int = sys.maxsize) -> Node:
         '''
         Builds a minimum spanning tree consisting of vertexes (Locations) in the graph (TravelMatrix). This method is used by a RoutePlanner
-        object when calculating delivery routes. 
+        object when calculating delivery routes.
 
         Parameters
         ----------
@@ -197,15 +198,15 @@ class TreeBuilder:
         root_location: int
             The index of a location (vertex) in the TravelMatrix object that serves as the root, or staring point, for building the tree.
             root_location must be a valid index in matrix.
-        
+
         undelivered_locations: set[int]
             A list of indexes of locations (vertexes) in the TravelMatrix object, which are all candidates for inclusion in the tree. This is
             is typically a subset of all locations in the TravelMatrix object.
-        
+
         max_payload: int = sys.maxsize
             The maximum payload (or capacity) of the delivery vehicle used to delivery packages. This method will stop building the tree when
             the sum of all packages in the tree exceeds this value.
-        
+
         Returns
         -------
         TreeBuilder.Node
@@ -327,7 +328,7 @@ class RoutePlanner(TravelMatrix):
 
     def __init__(self, trips: set[Trip]):
         super().__init__(trips)
-    
+
     def brute_force_optimize(self, tour: list[int], distribution_center: int) -> list[int]:
         best_tour = [x for x in tour]
         best_tour.insert(0, distribution_center)
@@ -339,7 +340,7 @@ class RoutePlanner(TravelMatrix):
             if self.total_travel_time(temp) < self.total_travel_time(best_tour):
                 best_tour = temp
         return best_tour
-    
+
     def triangle_optimize(self, tour: list[int], distribution_center: int) -> list[int]:
         best_tour = [x for x in tour]
         best_tour.insert(0, distribution_center)
@@ -356,7 +357,7 @@ class RoutePlanner(TravelMatrix):
             if z != max(x, y, z):
                 best_tour[i + 1], best_tour[i + 2] = best_tour[i + 2], best_tour[i + 1]
         return best_tour
-    
+
     def routes_starting_at_each(self, distribution_center: int, delivery_locations: set[int], max_payload: int = sys.maxsize) -> list[list[int]]:
         '''
         Returns a list of delivery routes containing one route with each location in
@@ -372,7 +373,7 @@ class RoutePlanner(TravelMatrix):
 
         max_payload: int = sys.maxsize
             The maximum payload of the delivery truck.
-        
+
         Returns
         -------
         list[list[int]]
@@ -402,9 +403,9 @@ class RoutePlanner(TravelMatrix):
             routes.append(tour)
 
         routes.sort(key=lambda t: self.total_travel_time(t) / self.total_packages(t))
-        
+
         return routes
-    
+
     def single_truck(self, distribution_center: int, min_packages: int, max_packages: int, max_payload: int, avg_unload_time: int = 0):
 
         # create a list of delivery locations
@@ -416,7 +417,7 @@ class RoutePlanner(TravelMatrix):
             #tours = self.routes_starting_at_each(distribution_center, undelivered, max_payload)
 
             # sort the set of tours in ascending order by the average delivery time per package
-            for tour in self.routes_starting_at_each(distribution_center, undelivered, max_payload): #sorted(tours, key=lambda t: self.matrix.total_travel_time(t) / self.matrix.total_packages(t)):
+            for tour in self.routes_starting_at_each(distribution_center, undelivered, max_payload):  # sorted(tours, key=lambda t: self.matrix.total_travel_time(t) / self.matrix.total_packages(t)):
                 s = set(tour[1:len(tour) - 1])
                 if undelivered.issuperset(s):
                     undelivered = undelivered.difference(s)
@@ -427,7 +428,7 @@ class RoutePlanner(TravelMatrix):
                         'Delivery Time': totalPackages * avg_unload_time,
                         'Customers': [self.location(i) for i in tour]
                     }
-    
+
     def large_and_small_truck(self, distribution_center: int, large_max_payload: int, small_max_payload: int, avg_unload_time: int = 0) -> list[list[int]]:
         routes = []
         undelivered = set(self.delivery_locations())
