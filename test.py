@@ -25,14 +25,13 @@ if __name__ == "__main__":
     google_api_key = data['google api key']
     f.close()
 
-    print(google_api_key)
-
     # get the data from google maps 
     trips = DeliveryLogistics.GoogleMapsTripSetBuilder.build(google_api_key, customer_orders, distributionCenters)
 
     # instantiate a route planning object
     planner = DeliveryLogistics.RoutePlanner(trips)
 
+    # get the distribution center
     distribution_ctr = planner.distribution_centers().pop()
 
     # calculate the delivery routes

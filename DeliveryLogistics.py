@@ -82,6 +82,15 @@ class TravelMatrix:
     '''An implementation of a directed, weighed adjacency matrix.'''
 
     def __init__(self, trips: set[Trip]):
+        '''
+        Constructs and returns an instance of a TravelMatrix object, which is an implementation
+        of a directed, weighed adjacency matrix.
+        
+        Parameters
+        ----------
+        trips: set[Trip]
+            A set of Trip objects representing the edges in directed, weighed adjacency matrix.
+        '''
 
         if not isinstance(trips, set):
             raise TypeError('trips must be a set type.')
@@ -109,40 +118,48 @@ class TravelMatrix:
             self.__matrix[x][y] = t.travelTime
 
     def location(self, index: int) -> Location:
+        '''Returns the Location object at 'index' in the travel matrix.'''
         return self.__locations[index]
 
-    def location_count(self) -> int:
-        return self.__locations.size
+    def location_count(self, location_type: type = None) -> int:
+        '''
+        Returns the total number of locations of location_type in the travel matrix.
+        If location_type == None, then the total number of locations is returned
+        '''
+        return self.__locations.size if location_type == None else sum(1 for loc in self.__locations if isinstance(loc,location_type))
 
     def travel_time(self, origin: int, destination: int) -> int:
+        '''Returns the travel time going from origin to destination.'''
         return self.__matrix[origin][destination]
 
-    # Calculates the total travel time of a tour in seconds.
     def total_travel_time(self, locations: list[int]) -> int:
+        '''Returns the total travel time between all locations in a list of locations.'''
         return sum(self.__matrix[locations[x]][locations[x + 1]] for x in range(len(locations) - 1))
 
-    # Calculates the sum of all packages to be delivered on a tour.
     def total_packages(self, locations: list[int]) -> int:
+        '''Calculates the sum of all packages to be delivered in a list of locations.'''
         return sum(self.__locations[x].packages for x in locations if hasattr(self.__locations[x], 'packages'))
 
-    # This is a convenience function used to determine if a vertex meets the criteria to
-    # be passed to self.__generate_tours(). Returns true if we can deliver to the customer.
     def is_deliverable(self, location: int, min_packages: int = 0, max_packages: int = sys.maxsize) -> bool:
+        '''Returns true if location is a DeliveryLocation object where min_packages <= packages <= max_packages'''
         if min_packages > max_packages:
             raise ValueError('min_packages must be less than max_packages')
         loc = self.__locations[location]
         return True if isinstance(loc, DeliveryLocation) and loc.packages >= min_packages and loc.packages <= max_packages else False
 
     def delivery_locations(self, min_packages: int = 0, max_packages: int = sys.maxsize) -> list[int]:
+        '''Returns a list of indexes corresponding to delivery locations where min_packages <= packages <= max_packages.'''
         return [i for i in range(self.location_count()) if self.is_deliverable(i, min_packages, max_packages)]
-
+    
     def has_inventory(self, location: int, min_inventory: int = 0, max_inventory: int = sys.maxsize) -> bool:
+        '''Returns true if location is a DistributionCenter object where min_inventory <= inventory <= max_inventory.'''
         if min_inventory > max_inventory:
             raise ValueError('min_inventory must be less than max_inventory')
         loc = self.__locations[location]
         return True if isinstance(loc, DistributionCenter) and loc.inventory >= min_inventory and loc.inventory <= max_inventory else False
 
     def distribution_centers(self, min_inventory: int = 0, max_inventory: int = sys.maxsize) -> list[int]:
+        '''Returns a list of indexes corresponding to distribution centers where min_inventory <= inventory <= max_inventory.'''
         return [i for i in range(self.location_count()) if self.has_inventory(i, min_inventory, max_inventory)]
 
     def nearest_neighbor(self, origin: int, destinations: list[int] = []) -> tuple[int, int] | None:
@@ -154,7 +171,7 @@ class TravelMatrix:
                 if travelTime < min_travelTime:
                     min_travelTime = travelTime
                     nearest = dst
-        return None if nearest is None else (nearest, min_travelTime)
+        return None if nearest == None else (nearest, min_travelTime)
 
     def farthest_outlier(self, destinations: list[int] = []) -> int:
         outlier = -1
@@ -250,22 +267,41 @@ class TreeBuilder:
         return root_node
 
 
-# See the Google Directions API Developer Guide located at
-#    https://developers.google.com/maps/documentation/directions/start
-#
-# According to the develper guide:
-#    "legs[] contains an array which contains information about a leg
-#    of the route, between two locations within the given route.
-#    A separate leg will be present for each waypoint or destination
-#    specified. (A route with no waypoints will contain exactly one
-#    leg within the legs array.) Each leg consists of a series of steps."
-#
-# Our data should not contain any waypoints. Therefore, each file
-# should only contain one leg.
 class GoogleMapsTripSetBuilder:
 
     @staticmethod
     def build(google_api_key: str, customer_orders: set[DeliveryLocation], distribution_centers: set[DistributionCenter]) -> set[Trip]:
+        '''
+        Uses Google Maps to build a set of Trip objects based on the function parameters.
+
+        See the Google Directions API Developer Guide located at
+            https://developers.google.com/maps/documentation/directions/start
+        
+        According to the develper guide:
+            "legs[] contains an array which contains information about a leg
+            of the route, between two locations within the given route.
+            A separate leg will be present for each waypoint or destination
+            specified. (A route with no waypoints will contain exactly one
+            leg within the legs array.) Each leg consists of a series of steps."
+        
+        Our data should not contain any waypoints. Therefore, each file should only contain one leg.
+
+        Parameters
+        ----------
+        google_api_key: str
+            Your google api key, which can be obtained from ___ if you do not have one.
+        
+        customer_orders: set[DeliveryLocation]
+            A set of DeliveryLocation objects representing all customer order that need to be delivered.
+        
+        distribution_centers: set[DistributionCenter]
+            A set of DistributionCenter objects containing the inventory to be delivered to the customers.
+        
+        Returns
+        -------
+        A set of Trip objects representing all travel times between all permutations of locations (DeliveryLocations and DistributionCenters).
+        The set should contain (n^2)-n number of Trips, where n is the number of DeliveryLocations plus the number of DistributionCenters.
+        '''
 
         if not isinstance(google_api_key, str):
             raise TypeError('google_api_key must be a string type.')
@@ -377,7 +413,7 @@ class RoutePlanner(TravelMatrix):
         Returns
         -------
         list[list[int]]
-            A list of delivery routes, each of which is a list of indexes in the travel matrix.
+            A list of delivery routes, each of which is a list of indexes in the travel matrix, sorted in ascending order by travel time per bag.
         '''
 
         if not isinstance(distribution_center, int) or not isinstance(self.location(distribution_center), DistributionCenter):
@@ -417,16 +453,16 @@ class RoutePlanner(TravelMatrix):
             #tours = self.routes_starting_at_each(distribution_center, undelivered, max_payload)
 
             # sort the set of tours in ascending order by the average delivery time per package
-            for tour in self.routes_starting_at_each(distribution_center, undelivered, max_payload):  # sorted(tours, key=lambda t: self.matrix.total_travel_time(t) / self.matrix.total_packages(t)):
-                s = set(tour[1:len(tour) - 1])
+            for route in self.routes_starting_at_each(distribution_center, undelivered, max_payload):  # sorted(tours, key=lambda t: self.matrix.total_travel_time(t) / self.matrix.total_packages(t)):
+                s = set(route[1:len(route) - 1])
                 if undelivered.issuperset(s):
                     undelivered = undelivered.difference(s)
-                    totalPackages = self.total_packages(tour)
+                    totalPackages = self.total_packages(route)
                     yield {
-                        'Travel Time': self.total_travel_time(tour),
+                        'Travel Time': self.total_travel_time(route),
                         'Total Bags': totalPackages,
                         'Delivery Time': totalPackages * avg_unload_time,
-                        'Customers': [self.location(i) for i in tour]
+                        'Customers': [self.location(i) for i in route]
                     }
 
     def large_and_small_truck(self, distribution_center: int, large_max_payload: int, small_max_payload: int, avg_unload_time: int = 0) -> list[list[int]]:
