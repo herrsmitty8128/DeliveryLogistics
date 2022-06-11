@@ -3,9 +3,9 @@ import DeliveryLogistics
 import csv
 import json
 
-avg_unload_seconds_per_bag = 30
+avg_unload_secs = 30
 max_payload_big_truck = 330
-customer_file = 'data_files/quick_test_data.csv'
+customer_file = 'data_files/2022_orders.csv'
 api_key_file = 'data_files/google_api_key.json'
 distributionCenters = set([DeliveryLogistics.DistributionCenter('Dogwood Elementary School', '12300 Glade Dr, Reston, VA 20191, USA')])
     
@@ -26,8 +26,11 @@ if __name__ == "__main__":
     f.close()
 
     # get the data from google maps 
-    trips = DeliveryLogistics.GoogleMapsTripSetBuilder.build(google_api_key, customer_orders, distributionCenters)
+    #trips = DeliveryLogistics.GoogleMapsTripSetBuilder.build(google_api_key, customer_orders, distributionCenters)
+    #DeliveryLogistics.write_trips_to_json(trips, 'trips.json')
 
+    trips = DeliveryLogistics.read_trips_from_json('trips.json')
+    
     # instantiate a route planning object
     planner = DeliveryLogistics.RoutePlanner(trips)
 

@@ -4,6 +4,7 @@ import sys
 import googlemaps
 import statistics
 import webbrowser
+import json
 from datetime import datetime
 from itertools import permutations
 
@@ -45,6 +46,7 @@ class DistributionCenter(Location):
 
 
 class Trip:
+    '''A class that represents the travel time from an origin to a destination. It also models an edge in a TravelMatrix object.'''
 
     def __init__(self, origin: Location, destination: Location, travelTime: int | str):
 
@@ -76,6 +78,27 @@ class Trip:
 
     def __repr__(self) -> str:
         return self.__str__()
+    
+    def json(self) -> str:
+        j = vars(self)
+        j['origin'] = vars(j['origin'])
+        j['destination'] = vars(j['destination'])
+        return vars(self)
+    
+    @staticmethod
+    def build(json_data: dict):
+        '''Builds an instance of a Trip object from a dict object.'''
+        
+        def build_location(jd: dict):
+            if jd.__contains__('name') and jd.__contains__('address'):
+                if jd.__contains__('packages'):
+                    return DeliveryLocation(jd['name'], jd['address'], jd['packages'])
+                if jd.__contains__('inventory'):
+                    return DistributionCenter(jd['name'], jd['address'], jd['inventory'])
+                return Location(jd['name'], jd['address'])
+            return None
+
+        return Trip(build_location(json_data['origin']), build_location(json_data['destination']), json_data['travelTime'])
 
 
 class TravelMatrix:
@@ -163,6 +186,7 @@ class TravelMatrix:
         return [i for i in range(self.location_count()) if self.has_inventory(i, min_inventory, max_inventory)]
 
     def nearest_neighbor(self, origin: int, destinations: list[int] = []) -> tuple[int, int] | None:
+        '''Returns a tuple containing the index in destinations and the travel time that is closest to origin.'''
         min_travelTime = sys.maxsize
         nearest = None
         for dst in destinations:
@@ -185,6 +209,7 @@ class TravelMatrix:
 
 
 class TreeBuilder:
+    '''A class containing static functions to build a tree.'''
 
     class Node:
         '''A basic tree note object containing a value and an array of children.'''
@@ -272,7 +297,7 @@ class GoogleMapsTripSetBuilder:
     @staticmethod
     def build(google_api_key: str, customer_orders: set[DeliveryLocation], distribution_centers: set[DistributionCenter]) -> set[Trip]:
         '''
-        Uses Google Maps to build a set of Trip objects based on the function parameters.
+        Uses Google Maps to build a set of Trip objects.
 
         See the Google Directions API Developer Guide located at
             https://developers.google.com/maps/documentation/directions/start
@@ -289,7 +314,7 @@ class GoogleMapsTripSetBuilder:
         Parameters
         ----------
         google_api_key: str
-            Your google api key, which can be obtained from ___ if you do not have one.
+            Your google api key, which can be obtained from the URL above if you do not have one.
         
         customer_orders: set[DeliveryLocation]
             A set of DeliveryLocation objects representing all customer order that need to be delivered.
@@ -360,39 +385,59 @@ class GoogleMapsTripSetBuilder:
 
 class RoutePlanner(TravelMatrix):
     '''
+    A subclass of TravelMatix used to determine delivery routes and perform other calculations.
     '''
 
     def __init__(self, trips: set[Trip]):
         super().__init__(trips)
 
-    def brute_force_optimize(self, tour: list[int], distribution_center: int) -> list[int]:
-        best_tour = [x for x in tour]
-        best_tour.insert(0, distribution_center)
-        best_tour.append(distribution_center)
-        for combo in permutations(tour, len(tour)):
+    def brute_force_optimize(self, route: list[int], distribution_center: int) -> list[int]:
+        '''
+        Attempts to shorten the travel time by trying every permutation of the locations in routes.
+        This function should not be called unless len(routes)<9. Otherwise, the time required to perform the 
+        calculation becomes infeasable.
+
+        Parameters
+        ----------
+        route: list[int]
+            A list of location indexes.
+
+        distribution_center: int
+            The index of the distribution center that serves at the starting and ending location in the route.
+            The distribution center should not be included in route when passed to this function.
+
+        Returns
+        -------
+        list[int]
+            A copy of routes with the locations rearranged to result in a shorting travel time. 
+        '''
+        best_route = [x for x in route]
+        best_route.insert(0, distribution_center)
+        best_route.append(distribution_center)
+        for combo in permutations(route, len(route)):
             temp = [x for x in combo]
             temp.insert(0, distribution_center)
             temp.append(distribution_center)
-            if self.total_travel_time(temp) < self.total_travel_time(best_tour):
-                best_tour = temp
-        return best_tour
+            if self.total_travel_time(temp) < self.total_travel_time(best_route):
+                best_route = temp
+        return best_route
 
-    def triangle_optimize(self, tour: list[int], distribution_center: int) -> list[int]:
-        best_tour = [x for x in tour]
-        best_tour.insert(0, distribution_center)
-        best_tour.append(distribution_center)
-        # iterate over each adjacent triplet in the tour
+    def triangle_optimize(self, route: list[int], distribution_center: int) -> list[int]:
+        best_route = [x for x in route]
+        best_route.insert(0, distribution_center)
+        best_route.append(distribution_center)
+        # iterate over each adjacent triplet in the route
         # if we go past the second to get the the third, then swap them.
-        for i in range(len(best_tour) - 3):
+        for i in range(len(best_route) - 3):
             # get the length of all three sides of the "triangle"
-            a, b, c = best_tour[i:i + 3]
+            a, b, c = best_route[i:i + 3]
             x = self.travel_time(a, b)
             y = self.travel_time(b, c)
             z = self.travel_time(a, c)
             # if z is not the hypotenuse, then swap b and c
             if z != max(x, y, z):
-                best_tour[i + 1], best_tour[i + 2] = best_tour[i + 2], best_tour[i + 1]
-        return best_tour
+                best_route[i + 1], best_route[i + 2] = best_route[i + 2], best_route[i + 1]
+        return best_route
 
     def routes_starting_at_each(self, distribution_center: int, delivery_locations: set[int], max_payload: int = sys.maxsize) -> list[list[int]]:
         '''
@@ -413,7 +458,7 @@ class RoutePlanner(TravelMatrix):
         Returns
         -------
         list[list[int]]
-            A list of delivery routes, each of which is a list of indexes in the travel matrix, sorted in ascending order by travel time per bag.
+            A list of delivery routes sorted in ascending order by travel time per bag.
         '''
 
         if not isinstance(distribution_center, int) or not isinstance(self.location(distribution_center), DistributionCenter):
@@ -427,16 +472,16 @@ class RoutePlanner(TravelMatrix):
             # create a minimmum spanning tree
             rootNode = TreeBuilder.minimum_spanning_tree(self, location, delivery_locations, max_payload)
 
-            # build a tour by iterating over the minimum spanning tree in preorder
-            tour = [node.value for node in rootNode.preorder_traversal()]
+            # build a route by iterating over the minimum spanning tree in preorder
+            route = [node.value for node in rootNode.preorder_traversal()]
 
-            # try to improve the tour before yielding it to the caller
-            if len(tour) < 9:
-                tour = self.brute_force_optimize(tour, distribution_center)
-            elif len(tour) >= 2:
-                tour = self.triangle_optimize(tour, distribution_center)
+            # try to improve the route before yielding it to the caller
+            if len(route) < 9:
+                route = self.brute_force_optimize(route, distribution_center)
+            elif len(route) >= 2:
+                route = self.triangle_optimize(route, distribution_center)
 
-            routes.append(tour)
+            routes.append(route)
 
         routes.sort(key=lambda t: self.total_travel_time(t) / self.total_packages(t))
 
@@ -449,11 +494,11 @@ class RoutePlanner(TravelMatrix):
 
         while len(undelivered):
 
-            #tours = [t for t in self.routes_starting_at_each(distribution_center, undelivered, max_payload)]
-            #tours = self.routes_starting_at_each(distribution_center, undelivered, max_payload)
+            #routes = [t for t in self.routes_starting_at_each(distribution_center, undelivered, max_payload)]
+            #routes = self.routes_starting_at_each(distribution_center, undelivered, max_payload)
 
-            # sort the set of tours in ascending order by the average delivery time per package
-            for route in self.routes_starting_at_each(distribution_center, undelivered, max_payload):  # sorted(tours, key=lambda t: self.matrix.total_travel_time(t) / self.matrix.total_packages(t)):
+            # sort the set of routes in ascending order by the average delivery time per package
+            for route in self.routes_starting_at_each(distribution_center, undelivered, max_payload):  # sorted(routes, key=lambda t: self.matrix.total_travel_time(t) / self.matrix.total_packages(t)):
                 s = set(route[1:len(route) - 1])
                 if undelivered.issuperset(s):
                     undelivered = undelivered.difference(s)
@@ -469,11 +514,11 @@ class RoutePlanner(TravelMatrix):
         routes = []
         undelivered = set(self.delivery_locations())
         while len(undelivered):
-            tours = self.routes_starting_at_each(distribution_center, undelivered, large_max_payload)
-            tour = tours[0]
+            routes = self.routes_starting_at_each(distribution_center, undelivered, large_max_payload)
+            route = routes[0]
             # remove from the list
-            tours = self.routes_starting_at_each(distribution_center, undelivered, small_max_payload)
-            tour = tours[-1]
+            routes = self.routes_starting_at_each(distribution_center, undelivered, small_max_payload)
+            route = routes[-1]
 
 
 def open_route_in_browser(route: list[Location]) -> None:
@@ -481,4 +526,20 @@ def open_route_in_browser(route: list[Location]) -> None:
     url = 'https://www.google.com/maps/dir/'
     for location in route:
         url += location.address.replace(' ', '+') + '/'
-    webbrowser.open(url)
+    webbrowser.open(url, new=2)
+
+
+def write_trips_to_json(trips: set[Trip], file_name: str) -> None:
+    '''Writes a set of Trip objects to a json file.'''
+    json_data = {'Trips': [t.json() for t in trips]}
+    with open(file_name, 'wt') as f:
+        f.write(json.dumps(json_data))
+
+
+def read_trips_from_json(file_name: str) -> set[Trip]:
+    '''Loads a set of trips from a json file.'''
+    with open(file_name, 'rt') as f:
+        json_data = json.load(f)
+    trip_list = json_data['Trips']
+    return set(Trip.build(t) for t in trip_list)
+
