@@ -467,6 +467,9 @@ class RoutePlanner(TravelMatrix):
                 route = self.brute_force_optimize(route, distribution_center)
             elif len(route) >= 2:
                 route = self.triangle_optimize(route, distribution_center)
+            else:
+                route.insert(0, distribution_center)
+                route.append(distribution_center)
             routes.append(route)
         routes.sort(key=lambda t: self.total_travel_time(t) / self.total_packages(t))
         return routes

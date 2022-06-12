@@ -47,7 +47,7 @@ if __name__ == "__main__":
     print('Total Delivery Time', round(routes['Total Delivery Time']/3600,1), 'hours')
 
     # display the routes in google maps
-    for route in routes['Routes']:
-        DeliveryLogistics.open_route_in_browser(route['Delivery Locations'])
+    #for route in routes['Routes']:
+    #    DeliveryLogistics.open_route_in_browser(route['Delivery Locations'])
     
 
