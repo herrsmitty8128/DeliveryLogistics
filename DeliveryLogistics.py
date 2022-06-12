@@ -78,17 +78,17 @@ class Trip:
 
     def __repr__(self) -> str:
         return self.__str__()
-    
+
     def json(self) -> str:
         j = vars(self)
         j['origin'] = vars(j['origin'])
         j['destination'] = vars(j['destination'])
         return vars(self)
-    
+
     @staticmethod
     def build(json_data: dict):
         '''Builds an instance of a Trip object from a dict object.'''
-        
+
         def build_location(jd: dict):
             if jd.__contains__('name') and jd.__contains__('address'):
                 if jd.__contains__('packages'):
@@ -108,7 +108,7 @@ class TravelMatrix:
         '''
         Constructs and returns an instance of a TravelMatrix object, which is an implementation
         of a directed, weighed adjacency matrix.
-        
+
         Parameters
         ----------
         trips: set[Trip]
@@ -149,7 +149,7 @@ class TravelMatrix:
         Returns the total number of locations of location_type in the travel matrix.
         If location_type == None, then the total number of locations is returned
         '''
-        return self.__locations.size if location_type == None else sum(1 for loc in self.__locations if isinstance(loc,location_type))
+        return self.__locations.size if location_type is None else sum(1 for loc in self.__locations if isinstance(loc, location_type))
 
     def travel_time(self, origin: int, destination: int) -> int:
         '''Returns the travel time going from origin to destination.'''
@@ -173,7 +173,7 @@ class TravelMatrix:
     def delivery_locations(self, min_packages: int = 0, max_packages: int = sys.maxsize) -> list[int]:
         '''Returns a list of indexes corresponding to delivery locations where min_packages <= packages <= max_packages.'''
         return [i for i in range(self.location_count()) if self.is_deliverable(i, min_packages, max_packages)]
-    
+
     def has_inventory(self, location: int, min_inventory: int = 0, max_inventory: int = sys.maxsize) -> bool:
         '''Returns true if location is a DistributionCenter object where min_inventory <= inventory <= max_inventory.'''
         if min_inventory > max_inventory:
@@ -195,7 +195,7 @@ class TravelMatrix:
                 if travelTime < min_travelTime:
                     min_travelTime = travelTime
                     nearest = dst
-        return None if nearest == None else (nearest, min_travelTime)
+        return None if nearest is None else (nearest, min_travelTime)
 
     def farthest_outlier(self, destinations: list[int] = []) -> int:
         outlier = -1
@@ -301,27 +301,27 @@ class GoogleMapsTripSetBuilder:
 
         See the Google Directions API Developer Guide located at
             https://developers.google.com/maps/documentation/directions/start
-        
+
         According to the develper guide:
             "legs[] contains an array which contains information about a leg
             of the route, between two locations within the given route.
             A separate leg will be present for each waypoint or destination
             specified. (A route with no waypoints will contain exactly one
             leg within the legs array.) Each leg consists of a series of steps."
-        
+
         Our data should not contain any waypoints. Therefore, each file should only contain one leg.
 
         Parameters
         ----------
         google_api_key: str
             Your google api key, which can be obtained from the URL above if you do not have one.
-        
+
         customer_orders: set[DeliveryLocation]
             A set of DeliveryLocation objects representing all customer order that need to be delivered.
-        
+
         distribution_centers: set[DistributionCenter]
             A set of DistributionCenter objects containing the inventory to be delivered to the customers.
-        
+
         Returns
         -------
         A set of Trip objects representing all travel times between all permutations of locations (DeliveryLocations and DistributionCenters).
@@ -351,7 +351,6 @@ class GoogleMapsTripSetBuilder:
 
         length = len(locations)
         num_trips = (length * length) - length
-        #counter = 0
         trips = set()
 
         # ask the user to be patient because the download process takes time.
@@ -362,7 +361,6 @@ class GoogleMapsTripSetBuilder:
         gmaps = googlemaps.Client(key=google_api_key)
 
         # iterate over every pair of customer addresses (no loops allowed!) and get the data from google maps
-        # for src, dst in ((s, d) for s in locations for d in locations if s != d):
         prev_percent = 0.0
         for n, trip in enumerate(((s, d) for s in locations for d in locations if s != d), 1):
             directions = gmaps.directions(trip[0].address, trip[1].address, mode='driving', departure_time=datetime.now())
@@ -370,9 +368,7 @@ class GoogleMapsTripSetBuilder:
             legs = directions[0]['legs']
             for leg in legs:
                 travel_time += int(leg['duration']['value'])
-            #travel_time = sum(int(leg['duration']['value']) for leg in directions[0]['legs'])
             trips.add(Trip(trip[0], trip[1], travel_time))
-            #counter += 1
             curr_percent = round(n / num_trips * 100, 1)
             if curr_percent > prev_percent:
                 print('\rDownloading directions from google.com/maps... ', curr_percent, '% complete', end='', file=sys.stderr)
@@ -385,7 +381,7 @@ class GoogleMapsTripSetBuilder:
 
 class RoutePlanner(TravelMatrix):
     '''
-    A subclass of TravelMatix used to determine delivery routes and perform other calculations.
+    A subclass of TravelMatix used to calculate delivery routes.
     '''
 
     def __init__(self, trips: set[Trip]):
@@ -394,7 +390,7 @@ class RoutePlanner(TravelMatrix):
     def brute_force_optimize(self, route: list[int], distribution_center: int) -> list[int]:
         '''
         Attempts to shorten the travel time by trying every permutation of the locations in routes.
-        This function should not be called unless len(routes)<9. Otherwise, the time required to perform the 
+        This function should not be called unless len(routes)<9. Otherwise, the time required to perform the
         calculation becomes infeasable.
 
         Parameters
@@ -409,7 +405,7 @@ class RoutePlanner(TravelMatrix):
         Returns
         -------
         list[int]
-            A copy of routes with the locations rearranged to result in a shorting travel time. 
+            A copy of routes with the locations rearranged to result in a shorting travel time.
         '''
         best_route = [x for x in route]
         best_route.insert(0, distribution_center)
@@ -460,65 +456,81 @@ class RoutePlanner(TravelMatrix):
         list[list[int]]
             A list of delivery routes sorted in ascending order by travel time per bag.
         '''
-
         if not isinstance(distribution_center, int) or not isinstance(self.location(distribution_center), DistributionCenter):
             raise ValueError('distribution_center must be an index of a DistributionCenter object in the adjacency matrix')
-
         routes = []
-
-        # iterate thru all the indexes in undelivered
         for location in delivery_locations:
-
-            # create a minimmum spanning tree
             rootNode = TreeBuilder.minimum_spanning_tree(self, location, delivery_locations, max_payload)
-
-            # build a route by iterating over the minimum spanning tree in preorder
-            route = [node.value for node in rootNode.preorder_traversal()]
-
+            route = [node.value for node in rootNode.preorder_traversal()]  # build a route by iterating over the minimum spanning tree in preorder
             # try to improve the route before yielding it to the caller
             if len(route) < 9:
                 route = self.brute_force_optimize(route, distribution_center)
             elif len(route) >= 2:
                 route = self.triangle_optimize(route, distribution_center)
-
             routes.append(route)
-
         routes.sort(key=lambda t: self.total_travel_time(t) / self.total_packages(t))
-
         return routes
 
-    def single_truck(self, distribution_center: int, min_packages: int, max_packages: int, max_payload: int, avg_unload_time: int = 0):
+    def single_payload_and_dist(self, distribution_center: int, min_packages: int, max_packages: int, max_payload: int, avg_unload_time: int = 0) -> dict:
+        '''
+        Calculates delivery routes when all delivery trucks have the same maximum capacity and there is only one distribution center.
+        Delivery routes are calculated for customers whose number of packages is: min_packages <= packages <= max_packages.
 
-        # create a list of delivery locations
+        Parameters
+        ----------
+        distribution_center: int
+            The index of the distribution center.
+
+        min_packages: int
+            The minimum number of packages necessary to include a customer in the delivery routes.
+
+        max_packages: int
+            The maximum number of packages necessary to include a customer in the delivery routes.
+
+        max_payload:
+            The maximum number of packages that a delivery truck can hold.
+
+        avg_unload_time: int = 0
+            The average amount of time that it takes to unload a package from the truck.
+
+        Yields
+        ------
+        dict
+            A dictionary containing a list of locations, travel time, total bags, and the unload time.
+        '''
+        routes = {
+            'Total Packages': 0,
+            'Total Travel Time': 0,
+            'Total Unload Time': 0,
+            'Total Delivery Time': 0,
+            'Routes': []
+        }
         undelivered = set(self.delivery_locations(min_packages, max_packages))
-
         while len(undelivered):
-
-            #routes = [t for t in self.routes_starting_at_each(distribution_center, undelivered, max_payload)]
-            #routes = self.routes_starting_at_each(distribution_center, undelivered, max_payload)
-
-            # sort the set of routes in ascending order by the average delivery time per package
-            for route in self.routes_starting_at_each(distribution_center, undelivered, max_payload):  # sorted(routes, key=lambda t: self.matrix.total_travel_time(t) / self.matrix.total_packages(t)):
+            for route in self.routes_starting_at_each(distribution_center, undelivered, max_payload):
                 s = set(route[1:len(route) - 1])
                 if undelivered.issuperset(s):
                     undelivered = undelivered.difference(s)
-                    totalPackages = self.total_packages(route)
-                    yield {
-                        'Travel Time': self.total_travel_time(route),
-                        'Total Bags': totalPackages,
-                        'Delivery Time': totalPackages * avg_unload_time,
-                        'Customers': [self.location(i) for i in route]
-                    }
+                    packages = self.total_packages(route)
+                    travel_time = self.total_travel_time(route)
+                    unload_time = packages * avg_unload_time
+                    delivery_time = travel_time + unload_time
+                    routes['Total Packages'] += packages
+                    routes['Total Travel Time'] += travel_time
+                    routes['Total Unload Time'] += unload_time
+                    routes['Total Delivery Time'] += delivery_time
+                    routes['Routes'].append({
+                        'Packages': packages,
+                        'Travel Time': travel_time,
+                        'Unload Time': unload_time,
+                        'Delivery Time': delivery_time,
+                        'Delivery Locations': [self.location(i) for i in route]
+                    })
+        return routes
 
-    def large_and_small_truck(self, distribution_center: int, large_max_payload: int, small_max_payload: int, avg_unload_time: int = 0) -> list[list[int]]:
-        routes = []
-        undelivered = set(self.delivery_locations())
-        while len(undelivered):
-            routes = self.routes_starting_at_each(distribution_center, undelivered, large_max_payload)
-            route = routes[0]
-            # remove from the list
-            routes = self.routes_starting_at_each(distribution_center, undelivered, small_max_payload)
-            route = routes[-1]
+    def large_and_small_payload_single_dist(self, distribution_center: int, large_max_payload: int, small_max_payload: int, avg_unload_time: int = 0) -> list[list[int]]:
+        '''Not yet implemented'''
+        pass
 
 
 def open_route_in_browser(route: list[Location]) -> None:
@@ -542,4 +554,3 @@ def read_trips_from_json(file_name: str) -> set[Trip]:
         json_data = json.load(f)
     trip_list = json_data['Trips']
     return set(Trip.build(t) for t in trip_list)
-
