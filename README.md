@@ -1,6 +1,6 @@
 # DeliveryLogistics
 
-*DeliveryLogistics* is a python module that 
+A python module that calculates delivery routes and displays them in Google Maps. 
 
 ## License
 
@@ -44,3 +44,9 @@ python3 -m pip install numpy googlemaps
 On Linux, if you are not logged in as a root user then be sure to prepend the commands above with _sudo_.
 
 ## Instructions for use
+
+After _DeliveryLogistics_ and all of its dependencies have been installed, there are 
+
+1. 
+2. 
+3. 
