@@ -44,11 +44,11 @@ if __name__ == "__main__":
             raise ValueError('Expected -k [google key] as a command line parameter.')
         
         if '-max_payload' in sys.argv:
-            i = sys.argv.index('-max_payload')
+            i = sys.argv.index('-max_payload') + 1
             big_truck_payload = int(sys.argv[i])
         
         if '-unload_time' in sys.argv:
-            i = sys.argv.index('-unload_time')
+            i = sys.argv.index('-unload_time') + 1
             avg_unload_secs = int(sys.argv[i])
 
         # get the data from google maps 
@@ -61,8 +61,18 @@ if __name__ == "__main__":
             DeliveryLogistics.write_trips_to_json(trips, f)
 
     elif '-from_file' in sys.argv:
-        i = sys.argv.index('-from_file')
-        f = sys.argv[i+1]
+
+        i = sys.argv.index('-from_file') + 1
+        f = sys.argv[i]
+        
+        if '-max_payload' in sys.argv:
+            i = sys.argv.index('-max_payload') + 1
+            big_truck_payload = int(sys.argv[i])
+        
+        if '-unload_time' in sys.argv:
+            i = sys.argv.index('-unload_time') + 1
+            avg_unload_secs = int(sys.argv[i])
+        
         trips = DeliveryLogistics.read_trips_from_json(f)
     
     else:
