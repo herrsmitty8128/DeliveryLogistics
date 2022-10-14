@@ -3,15 +3,11 @@ import DeliveryLogistics
 import csv
 import sys
 
-# default values
-avg_unload_secs = 11
-big_truck_payload = 330
-#customer_file = 'data_files/2022_orders.csv'
-#api_key_file = 'data_files/google_api_key.json'
-#distributionCenters = set([DeliveryLogistics.DistributionCenter('Dogwood Elementary School', '12300 Glade Dr, Reston, VA 20191, USA')])
-    
-
 if __name__ == "__main__":
+
+    # default values
+    avg_unload_secs = 11
+    big_truck_payload = 330
 
     if '-from_google' in sys.argv:
 
