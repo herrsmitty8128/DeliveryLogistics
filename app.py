@@ -3,21 +3,29 @@ import DeliveryLogistics
 import csv
 import argparse
 
+epilog = 'Thank you for using the DeliveryLogistics Python Module!'
+description="Welcome to Delivery Logistics, a program to calculate efficient delivery routes and display them in Google Maps in a browser."
+dist_ctr = '''
+The name (or description) and full address of the distribution center.
+The address must be a complete and valid address.
+Be sure to enclose the name/description in quotation marks if it contains spaces. The address should also be enclosed in quotation marks.
+'''
+
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Welcome to BSA Troop 1970's mulch delivery logistics program.")
+    parser = argparse.ArgumentParser(epilog=epilog, description=description)
     parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
-    parser.add_argument('-d', '--dist_ctr', help='The name and full address of the distribution center', nargs=2, type=str, action="extend")
-    parser.add_argument('-f', '--from_file', help='Calculate routes using a local file.', type=str, action="store")
-    parser.add_argument('-k', '--key', help='Google api key. Only include this option if also including the -g option.', type=str, action="store")
-    parser.add_argument('-c', '--cust_orders', help='Path and filename for a list of customer orders in CSV format.', type=str, action="store")
-    parser.add_argument('-u', '--avg_unload_secs', default=11, help='The average amount of time (in seconds) that it takes to unload a single item.', type=int, action="store")
-    parser.add_argument('-m', '--max_payload', default=330, help='The maximum payload of the delivery truck.', type=int, action="store")
-    parser.add_argument('-o', '--output_file', help='The path and filename of the file to which to save the trips data after downloading with the googlemaps module.', type=int, action="store")
+    parser.add_argument('-d', '--dist_ctr', help=dist_ctr, nargs=2, metavar=('[name or description]','[full address]'), type=str, action='extend')
+    parser.add_argument('-f', '--from_file', help='Calculate routes using a local file instead of using googlemaps.', metavar=('[File name and path]'), type=str, action='store')
+    parser.add_argument('-k', '--key', help='Google api key. Only include this option if not including the -f option.', metavar=('[Google API Key]'), type=str, action='store')
+    parser.add_argument('-c', '--cust_orders', help='Path and filename for a list of customer orders in CSV format.', metavar=('[File name and path]'), type=str, action='store')
+    parser.add_argument('-u', '--avg_unload_secs', default=11, help='The average amount of time (in seconds) that it takes to unload a single item from the delivery truck.', metavar=('[Avg no. of seconds]'), type=int, action='store')
+    parser.add_argument('-m', '--max_payload', default=330, help='The maximum payload of the delivery truck.', metavar=('[Maximum payload]'), type=int, action="store")
+    parser.add_argument('-o', '--output_file', help='The path and filename of the file to which to save the trips data after downloading with the googlemaps module.', metavar=('[File name and path]'), type=int, action='store')
     args = parser.parse_args()
 
     if args.from_file:
-        
+
         trips = DeliveryLogistics.read_trips_from_json(args.from_file)
     
     # get the trips data from googlemaps
