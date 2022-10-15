@@ -1,6 +1,6 @@
 # DeliveryLogistics
 
-A python module that calculates delivery routes and displays them in Google Maps. 
+A python module that calculates efficient delivery routes and displays them in Google Maps so you can review, edit, print, and share them with delivery truck drivers.
 
 ## License
 
@@ -45,8 +45,27 @@ On Linux, if you are not logged in as a root user then be sure to prepend the co
 
 ## Instructions for use
 
-After _DeliveryLogistics_ and all of its dependencies have been installed, there are 
+_DeliveryLogistics_ is designed to be used in one of two ways:
 
-1. 
-2. 
-3. 
+1. Obtain distances and drive times from the Google Maps API and calculate efficient routes.
+2. Recalculate drive times from a previously saved file.
+
+### Step 1: Obtain a Google API Key.
+
+_DeliveryLogistics_ uses Google Maps to obtain the driving time between every combination of delivery location and distribution center(s). In order for the program to access the Google Maps API online, you must give it your Google Maps API Key. If you do not already have one, then you can obtain one here https://developers.google.com/maps/documentation/javascript/get-api-key.
+
+### Step 2: Make a list of customer orders in CSV file format.
+
+In order to calculate efficient delivery routes, _DeliveryLogistics_ must know the full address and number of packages for each customer. This information is provided to the program at run-time through the use of a file in CSV format. The CSV file must contain all of the following fields:
+
+- "address": The customer's full delivery address. The address must be surrounded by quotation marks.
+- "bags": The number of packages to deliver to the customer's address. Quotation marks are not needed.
+
+An example of a properly formated CSV file is below. Most popular spreadsheet applications support CSV format and can be used to create the file.
+
+```CS
+address,bags
+"123 Main Street, City Name, State 12345", 15
+"321 Maple Lane, City Name, State 09384", 5
+"4321 My Street, City Name, State 54321", 9
+```

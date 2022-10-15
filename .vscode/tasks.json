@@ -7,7 +7,7 @@
             "label": "format DeliveryLogistics.py",
             "type": "shell",
             "command": "autopep8",
-            "args":["--in-place", "--max-line-length", "200", "--aggressive", "--aggressive", "DeliveryLogistics.py"],
+            "args":["--in-place", "--max-line-length", "250", "--aggressive", "--aggressive", "DeliveryLogistics.py", "app.py"],
             "group": {
 				"kind": "build",
 				"isDefault": true
