@@ -16,10 +16,6 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--output_file', help='The path and filename of the file to which to save the trips data after downloading with the googlemaps module.', type=int, action="store")
     args = parser.parse_args()
 
-    # default values
-    avg_unload_secs = args.avg_unload_secs
-    big_truck_payload = args.max_payload
-
     if args.from_file:
         
         trips = DeliveryLogistics.read_trips_from_json(args.from_file)
@@ -63,7 +59,7 @@ if __name__ == "__main__":
     distribution_ctr = planner.distribution_centers().pop()
 
     # calculate the delivery routes
-    routes = planner.single_payload_and_dist(distribution_ctr, 0, 330, big_truck_payload, avg_unload_secs)
+    routes = planner.single_payload_and_dist(distribution_ctr, 0, args.max_payload, args.max_payload, args.avg_unload_secs)
     
     # print the summary stats
     print('Total Packages', routes['Total Packages'])
